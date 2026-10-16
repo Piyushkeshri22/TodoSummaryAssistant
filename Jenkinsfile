@@ -7,20 +7,62 @@ pipeline {
 
     environment {
         DOCKER = 'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe'
+        CI_DB_CONTAINER = 'todo-ci-mysql'
+        CI_DB_PASSWORD = 'ci_test_password_2026'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Source code is checked out from the configured repository.'
                 checkout scm
+            }
+        }
+
+        stage('Start CI Database') {
+            steps {
+                bat '''
+                    "%DOCKER%" rm -f "%CI_DB_CONTAINER%" 2>NUL
+                    "%DOCKER%" run -d --name "%CI_DB_CONTAINER%" ^
+                      -e MYSQL_ROOT_PASSWORD=%CI_DB_PASSWORD% ^
+                      -e MYSQL_DATABASE=todo_db ^
+                      -p 127.0.0.1:3307:3306 ^
+                      mysql:8.0
+                '''
+
+                script {
+                    int retries = 30
+                    boolean ready = false
+
+                    for (int i = 0; i < retries; i++) {
+                        int result = bat(
+                            returnStatus: true,
+                            script: '"%DOCKER%" exec "%CI_DB_CONTAINER%" mysqladmin ping -h 127.0.0.1 -uroot -pci_test_password_2026 --silent'
+                        )
+
+                        if (result == 0) {
+                            ready = true
+                            break
+                        }
+
+                        sleep(time: 5, unit: 'SECONDS')
+                    }
+
+                    if (!ready) {
+                        error('CI MySQL database did not become ready.')
+                    }
+                }
             }
         }
 
         stage('Backend Build and Test') {
             steps {
                 dir('Backend/todo-summary-assistant') {
-                    bat 'call mvnw.cmd -B clean verify'
+                    bat '''
+                        call mvnw.cmd -B clean verify ^
+                          -Dspring.datasource.url=jdbc:mysql://127.0.0.1:3307/todo_db ^
+                          -Dspring.datasource.username=root ^
+                          -Dspring.datasource.password=%CI_DB_PASSWORD%
+                    '''
                 }
             }
         }
@@ -43,14 +85,15 @@ pipeline {
     }
 
     post {
+        always {
+            bat '"%DOCKER%" rm -f "%CI_DB_CONTAINER%" 2>NUL'
+            echo 'Pipeline execution finished.'
+        }
         success {
             echo 'CI pipeline completed successfully.'
         }
         failure {
             echo 'CI pipeline failed. Review the stage logs.'
-        }
-        always {
-            echo 'Pipeline execution finished.'
         }
     }
 }
