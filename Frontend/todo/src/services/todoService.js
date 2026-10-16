@@ -1,10 +1,7 @@
-
 import axios from 'axios';
 
-// Backend API base URL
-const API_BASE_URL = `${
-  process.env.REACT_APP_API_BASE_URL || 'http://localhost:8081/api'
-}/todos`;
+// Use relative API path so Nginx can proxy requests to the backend
+const API_BASE_URL = `${process.env.REACT_APP_API_BASE_URL || '/api'}/todos`;
 
 const todoService = {
   getAllTodos: () => axios.get(API_BASE_URL),
