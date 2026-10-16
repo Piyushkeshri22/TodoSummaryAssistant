@@ -8,9 +8,10 @@ pipeline {
     environment {
         DOCKER = 'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe'
         CI_DB_CONTAINER = 'todo-ci-mysql'
-        CI_DB_PASSWORD = 'ci_test_password_2026'
+        CI_DB_PASSWORD = credentials('ci-db-password')
         BACKEND_IMAGE = 'piyushkeshri22/todo-backend'
         FRONTEND_IMAGE = 'piyushkeshri22/todo-frontend'
+        EC2_HOST = '15.206.73.178'
     }
 
     stages {
@@ -38,7 +39,7 @@ pipeline {
                     for (int i = 0; i < retries; i++) {
                         int result = bat(
                             returnStatus: true,
-                            script: '"%DOCKER%" exec "%CI_DB_CONTAINER%" mysqladmin ping -h 127.0.0.1 -uroot -pci_test_password_2026 --silent'
+                            script: '"%DOCKER%" exec "%CI_DB_CONTAINER%" mysqladmin ping -h 127.0.0.1 -uroot -p%CI_DB_PASSWORD% --silent'
                         )
 
                         if (result == 0) {
