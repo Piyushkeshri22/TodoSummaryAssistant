@@ -109,6 +109,34 @@ pipeline {
                 }
             }
         }
+        stage('Deploy to EC2 and Verify') {
+            steps {
+            withCredentials([
+            sshUserPrivateKey(
+                credentialsId: 'ec2-ssh-key',
+                keyFileVariable: 'EC2_KEY',
+                usernameVariable: 'EC2_USER'
+            )
+            ]) {
+            bat '''
+                set "SSH=C:\\Windows\\System32\\OpenSSH\\ssh.exe"
+
+                if not exist "%SSH%" (
+                    echo ERROR: Windows OpenSSH client not found.
+                    exit /b 1
+                )
+
+                "%SSH%" -i "%EC2_KEY%" ^
+                  -o BatchMode=yes ^
+                  -o StrictHostKeyChecking=accept-new ^
+                  "%EC2_USER%@%EC2_HOST%" ^
+                  "bash -s -- %BUILD_NUMBER%" < deploy/deploy-ec2.sh
+
+                if errorlevel 1 exit /b 1
+            '''
+                }
+            }
+        }
     }
 
     post {
