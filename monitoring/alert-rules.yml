@@ -1,0 +1,29 @@
+groups:
+  - name: todo-assistant-alerts
+    rules:
+      - alert: TodoBackendTargetDown
+        expr: up{job="todo-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Todo backend metrics target is down"
+          description: "Prometheus cannot scrape the backend. Check container, Docker network, and Actuator configuration."
+
+      - alert: HighHostCPU
+        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host CPU usage is high"
+          description: "CPU usage has remained above 85% for 10 minutes."
+
+      - alert: LowHostDiskSpace
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host disk space is low"
+          description: "Less than 10% filesystem space remains."

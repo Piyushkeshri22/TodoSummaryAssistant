@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Requires Micrometer Prometheus registry and Actuator prometheus exposure.
+  - job_name: todo-backend
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["todo-backend:8080"]
+
+  # Node Exporter must be installed and reachable from Prometheus.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
