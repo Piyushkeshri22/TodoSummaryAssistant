@@ -95,7 +95,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DH_TOKEN% | "%DOCKER%" login --username "%DH_USER%" --password-stdin
+                        powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$env:DH_TOKEN | & $env:DOCKER login --username $env:DH_USER --password-stdin"
                         if errorlevel 1 exit /b 1
 
                         "%DOCKER%" push "%BACKEND_IMAGE%:%BUILD_NUMBER%"
