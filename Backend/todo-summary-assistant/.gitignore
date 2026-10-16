@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local environment files
+.env
+
+# Temporary Docker backups
+frontend-container-backup.json
+todo-frontend-1.0.tar
