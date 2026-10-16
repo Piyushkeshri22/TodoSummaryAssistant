@@ -9,6 +9,8 @@ pipeline {
         DOCKER = 'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe'
         CI_DB_CONTAINER = 'todo-ci-mysql'
         CI_DB_PASSWORD = 'ci_test_password_2026'
+        BACKEND_IMAGE = 'piyushkeshri22/todo-backend'
+        FRONTEND_IMAGE = 'piyushkeshri22/todo-frontend'
     }
 
     stages {
@@ -78,8 +80,33 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                bat '"%DOCKER%" build -t todo-backend:%BUILD_NUMBER% Backend/todo-summary-assistant'
-                bat '"%DOCKER%" build -t todo-frontend:%BUILD_NUMBER% Frontend/todo'
+                bat '"%DOCKER%" build -t "%BACKEND_IMAGE%:%BUILD_NUMBER%" Backend/todo-summary-assistant'
+                bat '"%DOCKER%" build -t "%FRONTEND_IMAGE%:%BUILD_NUMBER%" Frontend/todo'
+            }
+        }
+
+        stage('Push Images to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DH_USER',
+                        passwordVariable: 'DH_TOKEN'
+                    )
+                ]) {
+                    bat '''
+                        echo %DH_TOKEN% | "%DOCKER%" login --username "%DH_USER%" --password-stdin
+                        if errorlevel 1 exit /b 1
+
+                        "%DOCKER%" push "%BACKEND_IMAGE%:%BUILD_NUMBER%"
+                        if errorlevel 1 exit /b 1
+
+                        "%DOCKER%" push "%FRONTEND_IMAGE%:%BUILD_NUMBER%"
+                        if errorlevel 1 exit /b 1
+
+                        "%DOCKER%" logout
+                    '''
+                }
             }
         }
     }
